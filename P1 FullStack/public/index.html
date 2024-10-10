@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Meet do Paraguai</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/client.js"></script>
+</head>
+<body>
+    <h1>Google Meet do Paraguai</h1>
+
+    <div>
+        <h2>Criar Sala</h2>
+        <label for="roomName">Nome da Sala:</label>
+        <input type="text" id="roomName" placeholder="Nome da Sala">
+        <label for="roomDescription">Descrição:</label>
+        <input type="text" id="roomDescription" placeholder="Descrição (opcional)">
+        <label for="roomCapacity">Capacidade:</label>
+        <input type="number" id="roomCapacity" placeholder="Capacidade">
+        <button id="createRoomButton">Criar Sala</button>
+    </div>
+
+    <div>
+        <h2>Entrar na Sala</h2>
+        <label for="roomInput">Sala:</label>
+        <input type="text" id="roomInput" placeholder="ID da Sala">
+        <button id="joinRoomButton">Entrar na Sala</button>
+    </div>
+
+    <div>
+        <h2>Enviar Mensagem</h2>
+        <input type="text" id="messageInput" placeholder="Digite uma mensagem">
+        <button id="sendButton">Enviar Mensagem</button>
+    </div>
+
+    <ul id="messages"></ul>
+
+    <script>
+        const token = localStorage.getItem('token'); 
+
+        
+        const socket = io('http://localhost:3000', {
+            auth: {
+                token: token 
+            }
+        });
+
+       
+        document.getElementById('createRoomButton').addEventListener('click', async () => {
+            const roomName = document.getElementById('roomInput').value;
+            const capacity = document.getElementById('capacityInput').value; 
+
+            const response = await fetch('/api/rooms', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ name: roomName, capacity: capacity })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Sala criada com ID:', data.id); 
+                alert(`Sala criada com sucesso! ID: ${data.id}`);
+            } else {
+                console.error('Erro ao criar sala:', response.statusText);
+            }
+        });
+
+        
+        document.getElementById('sendButton').addEventListener('click', () => {
+            const message = document.getElementById('messageInput').value;
+            socket.emit('sendMessage', message);
+            document.getElementById('messageInput').value = ''; 
+        });
+
+        
+        socket.on('receiveMessage', (message) => {
+            const messageContainer = document.getElementById('messages');
+            const newMessage = document.createElement('li');
+            newMessage.textContent = message;
+            messageContainer.appendChild(newMessage);
+        });
+
+       
+        document.getElementById('joinRoomButton').addEventListener('click', () => {
+            const roomName = document.getElementById('roomInput').value;
+            if (roomName) {
+                joinRoom(roomName);  // Chama a função do client.js
+            } else {
+                console.error("Nome da sala não pode ser vazio.");
+            }
+        });
+    </script>
+</body>
+</html>
